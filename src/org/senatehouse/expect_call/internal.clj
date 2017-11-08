@@ -1,5 +1,6 @@
 (ns org.senatehouse.expect-call.internal
-  (:use clojure.test [clojure.core.match :only (match)]))
+  (:require [clojure.test :refer :all]
+            [clojure.core.match :refer [match]]))
 
 (def ^:dynamic *disable-interception* false)
 
@@ -18,7 +19,6 @@
          :stack-trace (seq stack-trace)})
       msg))))
 
-
 (defn -expected-call
   "Used by (expect-call) macro. You don't call this."
   [[more-fns calls :as state] real-fn real-fn-name args]
@@ -30,12 +30,12 @@
         (do ; It matched the next explicit expectation. Run it.
           (swap! calls rest)
           (apply ex-fn args))
-        
+
         ;; It didn't match an explicit expectation - did it match
         ;; a :more or :never?
         (if-let [more-fn (more-fns real-fn)]
           (apply more-fn args)
-          
+
           ;; Nope - it's just wrong
           (my-report {:type :fail
                       :message (if ex-real-fn
@@ -48,21 +48,26 @@
   (let [args (or args '[& _])
         real-fn (gensym "real-fn")]
     `(let [~real-fn ~real-fn-name]
-       (fn ~(gensym (str real-fn-name "-mock")) [& ~'myargs]
+       (fn #_~(gensym (str real-fn-name "-mock")) [& ~'myargs]
          (match (apply vector ~'myargs)
-                ~args (do ~@body ~@(when (:do tags) `((apply ~real-fn ~'myargs))))
-                :else (my-report {:type :fail
-                                  :message "Unexpected arguments"
-                                  :expected (quote ~(cons real-fn-name args))
-                                  :actual (cons (quote ~real-fn-name)
-                                                ~'myargs)} 6))))))
+           ~args (do ~@body ~@(when (:do tags) `((apply ~real-fn ~'myargs))))
+           :else (my-report {:type :fail
+                             :message "Unexpected arguments"
+                             :expected (quote ~(cons real-fn-name args))
+                             :actual (cons (quote ~real-fn-name)
+                                           ~'myargs)} 6))))))
+
+(clojure.repl/doc clojure.core/fn)
+(clojure.repl/doc gensym)
+
+(clojure.spec.alpha/explain simple-symbol? (gensym "foo"))
 
 (defmacro -expect-call
   "expected-fns: (fn arg-match body...)
                  or [(fn arg-match body...), (fn arg-match body...)...]
    Each fn may be preceded by keywords :more, :never or :do."
   [expected-fns & body]
-  
+
   (let [expected-fns (if (vector? expected-fns) expected-fns [expected-fns])
         expected-fns (for [fspec expected-fns]
                        (cons (apply hash-set (take-while keyword? fspec))
@@ -82,10 +87,7 @@
                                                :message ~(str real-fn " should not be called")
                                                :expected (quote (:never ~real-fn))
                                                :actual (cons (quote ~real-fn)
-                                                             args#)} 4))})))
-       
-       
-           ;; Format: ([function closure fn-name arg-form],
+                                                             args#)} 4))})));; Format: ([function closure fn-name arg-form],
            ;;          [function closure arg-form], ...)
            calls# (atom
                    (list
@@ -95,18 +97,18 @@
                          `(quote ~real-fn) `(quote ~args)])))
 
            ~state [more-fns# calls#]]
-       
+
        (let [result#
              (with-redefs
-               ~(apply vector
-                       (let [fns (reduce (fn [set [_ real-fn]] (conj set real-fn))
-                                         #{} expected-fns)]
-                         (apply
-                          concat
-                          (for [f fns]
-                            [f `(let [f# ~f]
-                                  (fn ~(symbol (str (name f) "-mock")) [& a#]
-                                    (-expected-call ~state f# (quote ~f) a#)))]))))
+              ~(apply vector
+                      (let [fns (reduce (fn [set [_ real-fn]] (conj set real-fn))
+                                        #{} expected-fns)]
+                        (apply
+                         concat
+                         (for [f fns]
+                           [f `(let [f# ~f]
+                                 (fn ~(symbol (str (name f) "-mock")) [& a#]
+                                   (-expected-call ~state f# (quote ~f) a#)))]))))
                ~@body)]
          ;; If we haven't used up all our calls, we error out
          (when-let [[_# _# ex-fn-name# ex-args#] (first @calls#)]

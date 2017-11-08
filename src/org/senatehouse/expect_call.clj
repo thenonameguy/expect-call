@@ -1,12 +1,12 @@
 (ns org.senatehouse.expect-call
-  (:use org.senatehouse.expect-call.internal))
+  (:require [org.senatehouse.expect-call.internal :refer :all]))
 
 (defmacro expect-call
   "expected-fns: (fn arg-match body...)
                  or [(fn arg-match body...), (fn arg-match body...)...]
    Each fn may be preceded by keywords :more, :never or :do."
   [expected-fns & body]
-  
+
   `(-expect-call ~expected-fns ~@body))
 
 ;; This is an alias
