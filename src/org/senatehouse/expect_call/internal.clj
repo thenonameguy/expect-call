@@ -57,11 +57,6 @@
                              :actual (cons (quote ~real-fn-name)
                                            ~'myargs)} 6))))))
 
-(clojure.repl/doc clojure.core/fn)
-(clojure.repl/doc gensym)
-
-(clojure.spec.alpha/explain simple-symbol? (gensym "foo"))
-
 (defmacro -expect-call
   "expected-fns: (fn arg-match body...)
                  or [(fn arg-match body...), (fn arg-match body...)...]
