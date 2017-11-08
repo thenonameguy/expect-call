@@ -1,4 +1,4 @@
-(defproject org.senatehouse/expect-call "0.1.0"
+(defproject the_nonameguy/expect-call "0.1.1"
   :description "A Clojure library for no-fuss function mocking"
   :url "https://github.com/meredydd/expect-call"
   :license {:name "Eclipse Public License"
